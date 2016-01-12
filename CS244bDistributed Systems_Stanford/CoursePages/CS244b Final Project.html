@@ -1,0 +1,181 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0057)http://www.scs.stanford.edu/14au-cs244b/labs/project.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>CS244b Final Project</title>
+<link rel="stylesheet" type="text/css" href="./CS244b Final Project_files/style.css">
+<style type="text/css">
+<!--
+ul.compact {
+  margin: 0px;
+}
+li.compact {
+  margin: 0px;
+}
+//-->
+</style>
+</head>
+
+<body>
+
+<h1><a href="http://www.scs.stanford.edu/14au-cs244b/">Distributed Systems</a>
+Final project guidelines</h1>
+
+<p>
+The final lab assignment for the class is to undertake a mini research
+project of your choice in a group of 1-3 people.
+
+</p><p>
+Your project should be guided by the following deadlines:
+
+</p><ul class="spaced">
+<li>By <span class="due">Friday, Oct 31</span> you should form a
+project team of 1-3 people and email the course staff
+to let us know with whom you will be working.
+
+</li><li>Before <span class="due">Friday, November 7</span> you should
+schedule a meeting of your team with the course staff to
+discuss your proposed project.  Once your proposal has been approved,
+send the course staff a short (1 paragraph) description of what you want to do,
+which might be posted on the web site so everybody knows what the
+different projects are.
+
+<p>
+Please schedule your meeting sooner rather than later, in case your
+team needs to iterate on the proposal.  Note, in particular, that it's
+fine to meet with us if you don't have a concrete plan yet, as we can
+suggest some things for you to look into.
+
+</p><p>
+Note:  If you want to combine your project with your research or with
+work for another class, this is in general fine, but please let us
+know at the time of the proposal.
+
+</p></li><li>By <span class="due">Thursday, December 4</span> you must email the
+course staff a paper
+describing and evaluating your project.  The paper should be no more
+than 6 pages in at least 11-point font.  We may post the papers on the
+class web site.
+
+</li><li>At <span class="due">7:00pm-10:00pm, Thursday, December
+11th</span> (possibly starting earlier for people who can make it),
+you will present your project to the class and demo what you have
+done.  Your combined talk and demo should take 10-20 minutes depending
+on the number of groups.  You must also submit the source code to your
+project at this time.  Note that this is a <b>hard deadline</b>, since
+we have to reserve a room for the presentations and submit grades for
+people.
+
+</li></ul>
+
+<p>
+Here are some ideas you might be interested in for projects.  This
+list is by no means exhaustive.
+
+</p><ul class="spaced">
+
+<li>Build
+  a <a href="http://www.hpl.hp.com/techreports/Compaq-DEC/SRC-RR-115.pdf">network
+  object system</a> for C++.
+
+</li><li>Build something
+    like <a href="http://homes.cs.washington.edu/~levy/porcupine.pdf">Porcupine</a>
+    that addresses some of the paper's shortcomings.
+
+</li><li> Distributed protocols such as 2PC and Paxos are (1) short,
+(2) really hard to get right because of failures and uncertainty.
+Build a simple system that takes an implementation of these protocols
+and systematically explores their behavior in the face of crashes and
+network partitioning.  See
+<a href="http://www.cs.columbia.edu/~junfeng/papers/yang-explode-osdi.pdf">here</a>
+for an example of how to do this for file systems.  (I think this
+project could lead to a conference paper -DRE.)
+
+</li><li> Build a checking infrastructure than can plug into the many
+different RAFT implementations and find protocol errors.  The nice
+trick you can use here is that you do not have to specify correctness:
+each of the protocols must do the same observable action given the
+same sequence of crashes, partitions, recoveries.  You may want to
+look at what Kyle Kingsbury
+has <a href="http://aphyr.com/tags/jepsen">done</a>
+with <a href="https://github.com/aphyr/jepsen">Jepsen</a>.  (I think
+this project could lead to a conference paper -DRE.)
+
+</li><li> Build a clean, simple implementation of view stamped replication 
+based on the updated Liskov paper that can be dropped into distributed
+systems in a way analogous to RAFT.</li>
+
+<li> Raspberry/pi is a very popular embedded computing platform.  Build 
+a distributed system using r/pi nodes and some interesting cheap hardware.
+More ambitious: build a clean, simple "bare-metal" toolkit on r/pi that
+allows people to easily build such systems.</li>
+
+<li> 
+Build a simple, automatic distributed-parallel make implementation.
+Most makefiles are broken with spurious dependencies (slow) and missing
+dependencies (incorrect).   Fortunately you can infer true dependencies
+automatically: kick off an existing (broken) build, intercept every
+"open()" system call to see which other files a given file depends on
+(e.g., all the files it #includes).   Build a lightweight distributed
+system that does parallel distributed builds using these dependencies.
+</li>
+
+<li>Build a large file store, like GFS, and possibly using RAID
+    like
+    <a href="http://portal.acm.org/citation.cfm?id=210126.210131">Zebra</a>.
+
+</li><li>Build a scalable virtual disk like
+    <a href="http://www.thekkath.org/Documents/petal.pdf">Petal</a>. (Maybe 
+    built using the Intel Open Storage Toolkit).
+
+</li><li>Build a simplified version of a synchronization service like
+    Google's
+    <a href="http://research.google.com/archive/chubby-osdi06.pdf">Chubby</a>.
+
+</li><li>Build something like <a href="http://www.danga.com/mogilefs/">MogileFS</a>
+    but instead of having a centralized database, replicate the DB using Paxos.
+
+</li><li>Build a scalable web cache using consistent hashing.
+
+</li><li>Build a highly-available, replicated DNS server that uses Paxos to
+    ensure consistency of updates.
+
+</li><li> Build a parallel debugger (ideally using some modification of GDB)
+that allows you to debug distributed systems.  It should follow execution
+across message send and receive (analogously to procedure call/return).
+
+</li><li> Build a distributed profiler that allows you to observe where time 
+really goes in a distributed system.  You should use it to spot bottlenecks
+in at least one existing distributed system.
+
+</li><li> Build a system-call or message-level interposition library that
+can be slipped underneath an existing networked server and
+transparently be used to replicate these services so that they can
+survive failure and network partitioning. (Something similar but more
+complicated that what you would build:
+<a href="http://ccl.cse.nd.edu/software/parrot/">parrot</a>.)
+
+</li><li> Build a similar message-level interposition library that can be slipped
+underneath existing networked services and add security (nonces, secure
+checksums, encryption, authentication).  Relevant: VPNs.
+
+</li><li> In the old days, people who wanted to play the same music in
+different rooms of their house had to run cables through their walls.
+Downsides = obvious.  A reasonable alternative now is to put a music
+server in each room and synchronize their playlists.  Build a system
+(e.g., based on MPD) that does this in a simple way.  The challenge
+here is to robustly, simply synchronize the play commands and
+transparently syncing music content by sending the fewest bits
+possible, possibly by using some of the tricks
+in <a href="http://www.scs.stanford.edu/~dm/home/papers/muthitacharoen:lbfs.pdf">LBFS</a>,
+  <a href="http://www.scs.stanford.edu/~dm/home/papers/annapureddy:shark.pdf">Shark</a>,
+  or <a href="http://www.scs.stanford.edu/14au-cs244b/sched/readings/ori.pdf">Ori</a>.
+  (I think this is something that would be widely-used if done
+  right. -DRE)
+
+</li>
+
+</ul>
+
+
+
+</body></html>

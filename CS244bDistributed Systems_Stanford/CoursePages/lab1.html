@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<!-- saved from url=(0054)http://www.scs.stanford.edu/14au-cs244b/labs/lab1.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link rel="stylesheet" href="./lab1_files/bootstrap.min.css">
+  <link rel="stylesheet" href="./lab1_files/local.css">
+</head>
+<body><article class="container">
+<h1 id="lab-1">Lab #1</h1>
+<p><strong>Due Date</strong>: October 16th, 2014 (hard deadline 11:59pm Sunday October 19)</p>
+<p><strong>UPDATE</strong>: Test scripts and outputs are in the repository now</p>
+<p>The purpose of Lab #1 is to acquaint you with the concept of Remote Procedure Calls (RPCs). You will be building a simple key-value store similar to the Zookeeper paper you read for class, but with just a single (unreplicated) server. In the subsequent lab we will make this reliable and you can use this as the foundation for your group project.</p>
+<h2 id="build-dependencies">Build Dependencies</h2>
+<ul>
+<li>gmake</li>
+<li>gcc or clang with C++11</li>
+<li>bison</li>
+<li>flex</li>
+<li>pkg-config</li>
+</ul>
+<h2 id="getting-started">Getting Started</h2>
+<p>Clone the source code with:</p>
+<pre><code>    $ git clone http://www.scs.stanford.edu/14au-cs244b/labs/lab1.git</code></pre>
+<h2 id="xdrpp">XDRPP</h2>
+<p>You will be using the <a href="http://en.wikipedia.org/wiki/Open_Network_Computing_Remote_Procedure_Call">Open Network Computing (ONC) Remote Procedure Call (RPC)</a> protocol to implement this lab. RPC has been an Internet standard for years and is widely used, especially in network storage protocols such as NFS. The latest RPC specification is available as <a href="https://tools.ietf.org/html/rfc5531">RFC5531</a>, though you do not need to read that specification for this lab. The document you may want to look at is the External Data Representation (XDR) standard, <a href="http://tools.ietf.org/html/rfc4506">RFC4506</a>, which describes the language in which you express data structures transmitted between machines with RPC.</p>
+<p>XDR is both a language for describing data structures, and a specification for how to serialize those data structures. The language should feel familiar to C and C++ programmers. We went over the syntax in the first lecture, so in addition to <a href="http://tools.ietf.org/html/rfc4506">RFC4506</a> you may want consult the <a href="http://www.scs.stanford.edu/14au-cs244b/notes/intro.pdf#18">lecture nodes</a>.</p>
+<p>Traditionally, C and C++ implementations of RPC have not been type safe. Fortunately, the instructor has built you a brand new RPC implementation, called XDRPP, that takes advantage of C++11 features to provide a type safe interface. XDRPP consists of an XDR compiler, called <code>xdrc</code>, and a runtime library <code>libxdrpp</code>. Documentation is available <a href="http://www.scs.stanford.edu/14au-cs244b/labs/xdrpp-doc/">here</a>. Source code will automatically be placed in a subdirectory of your lab via the git submodule system.</p>
+<p>If you have not used C++11, you may wish to familiarize yourself with some of the features. Stroustrup has made <a href="https://isocpp.org/tour">a tour of C++</a> available on line, and the <a href="http://en.wikipedia.org/wiki/C%2B%2B11">wikipedia page on C++11</a> summarizes features that will be new to people who have only programmed in C++03.</p>
+<p>You may wish to look at the "Native Representations" section of the <a href="http://www.scs.stanford.edu/14au-cs244b/labs/xdrpp-doc/md_doc_xdrc_81.html"><code>xdrc</code> manual page</a>. <code>xdrc</code> introduces several new container types, including <code>xdr::xstring</code>, <code>xdr::xarray</code>, and <code>xdr::xvector</code>. However, these are subtypes of the standard C++11 types <a href="http://en.cppreference.com/w/cpp/string/basic_string"><code>std::string</code></a>, <a href="http://en.cppreference.com/w/cpp/container/array"><code>std::array</code></a>, and <a href="http://en.cppreference.com/w/cpp/container/vector"><code>std::vector</code></a>, so for the most part you can use these as if they were the standard library types. XDRPP introduces new subtypes both to keep track of the maximum length of containers at the type level as well as to provide a few class members that help unify treatment of marshaled data types. XDR optional data, which is specified in syntax like C pointers, is represented by <code>xdr::pointer</code>, a subtype of <a href="http://en.cppreference.com/w/cpp/memory/unique_ptr"><code>std::unique_ptr</code></a>.</p>
+<p>One useful feature of XDRPP is that is can trace and pretty-print RPC calls if you run the following command to set environment variables:</p>
+<pre><code>$ export XDR_TRACE_CLIENT= XDR_TRACE_SERVER=1</code></pre>
+<p>When something is going wrong, tracing calls is a good way to determine whether the client or the server is to blame.</p>
+<h2 id="overview">Overview</h2>
+<p>Here we will show you how to get started with the system. First inside the lab1 directory you should try to run make.</p>
+<pre><code>    $ make</code></pre>
+<p>In order to define the RPCs that your server will support you will modify <code>server.x</code> to define the parameters and return values. Each RPC can take one argument and one return value. In order to pass multiple parameters you will use structures. The necessary XDR definition for the create method is shown below.</p>
+<pre><code>    struct kvpair {
+        string key&lt;512&gt;;
+        string val&lt;&gt;;
+    };
+
+    program server_api {
+      version api_v1 {
+        bool create(kvpair) = 1;
+      } = 1;
+    } = 0x40048086;</code></pre>
+<p>We have included in the repository a sample <code>serverimpl.{cc|hh}</code> file that implements the server side just for the create method. Every time you modify the RPC protocol definition you will need to use the XDRPP compiler to regenerate these files. You need to rename the old files and merge your changes into the newly generated files. To regenerate these files run:</p>
+<pre><code>    $ make scaffold</code></pre>
+<p>The create method shown below shows how we extract the arguments from the <code>arg</code> parameter. The necessary implementation, some sample logging for debugging, and how the result is set into the local <code>res</code>. We left out the path sanity checking that you would want to do.</p>
+<pre><code>    std::unique_ptr&lt;bool&gt;
+    api_v1_server::create(std::unique_ptr&lt;kvpair&gt; arg)
+    {
+      bool hasKey;
+      std::string key = arg.get()-&gt;key;
+      std::string val = arg.get()-&gt;val;
+      std::unique_ptr&lt;bool&gt; res(new bool);
+
+      // Fill in additional sanity checking (e.g. prevent malformed paths)
+
+      hasKey = db.hasKey(arg.get()-&gt;key);
+      if (hasKey) {
+        (*res) = false;
+        std::cout &lt;&lt; "Created " &lt;&lt; key &lt;&lt; " Failed" &lt;&lt; std::endl;
+      } else {
+        (*res) = true;
+        db.set(key, val);
+        std::cout &lt;&lt; "Created " &lt;&lt; key &lt;&lt; " Succeeded" &lt;&lt; std::endl;
+      }
+    
+      return res;
+    }</code></pre>
+<p>In the header for the server implementation we also created a simple constructor to initialize and open the database.</p>
+<p>The XDRPP library takes care of all the other serialization and network setup.<br>Our client library <code>libclient/client.cc</code> implements wrapper functions to simplify the usage of the RPCs. Here you should do basic sanity checking, call the RPC method, parse the results and if needed throw an exception. Below the code for library's create method.</p>
+<pre><code>    bool
+    Client::create(const std::string &amp;path, const std::string &amp;val)
+    {
+        kvpair args;
+    
+        args.key = path;
+        args.val = val;
+    
+        auto r = client-&gt;create(args);
+    
+        return *r;
+    }</code></pre>
+<p>Finally, you should be able to test the create method by running the server and client shell in separate terminals.</p>
+<pre><code>    $ server/server
+
+    $ shell/shell
+    &gt; create /test abc
+    CREATED
+    &gt; create /test def
+    KEY ALREADY EXISTS</code></pre>
+<p>N.B. Our create example is to get you started and does not sanity check the path creation. You should ensure that the server does not allow malformed paths, i.e., paths must begin with a '/' and must contain only letters, numbers, underscores, and slashes to separate components. Like the Zookeeper paper, we should only create nodes if they have parents and delete nodes if they have no children.</p>
+<h2 id="defining-the-rpc-protocol">Defining the RPC Protocol</h2>
+<p>You will need to define an RPC protocol in XDR format and use <code>xdrc</code> to compile the XDR types to C++ types and to generate the server and client definitions.</p>
+<p>Below is a part of the <code>include/server.x</code> protocol definition you will need to modify. We already filled in APIs for create, remove, set. It is missing both get and list. The get call returns a particular key, and list returns a set of all keys under a given path. You may find that you need to change these APIs to express results as error codes.</p>
+<pre><code>    program server_api {
+        version api_v1 {
+            bool create(kvpair) = 1;
+            bool remove(longstring) = 2;
+            bool set(kvpair) = 3;
+            // TODO: You will need to fill in more calls here
+            // ...
+        } = 1;
+    } = 0x40048086;</code></pre>
+<p>Review <code>include/client.h</code> to see what parameters, return values and error codes you will need to return to the client. Here is a summary of the C++ API you will need to implement.</p>
+<dl>
+<dt><code>bool create(string key, string value)</code></dt>
+<dd>This method creates a key with the specified value. On success the method
+</dd>
+</dl>
+<p>returns true. If the key already exists it should return false. For any other errors or malformed keys (i.e. keys with spaces, not beginning with a '/') we should throw an exception.</p>
+<dl>
+<dt><code>bool remove(string key)</code></dt>
+<dd>This method removes a key and returns true on success. Otherwise it will
+</dd>
+</dl>
+<p>return a failure.</p>
+<dl>
+<dt><code>string get(string key)</code></dt>
+<dd>This method returns the value of the specified key. If the key does not
+</dd>
+</dl>
+<p>exist it will throw an exception.</p>
+<dl>
+<dt><code>void set(string key, string value)</code></dt>
+<dd>This method sets the value of the specified key. If the key does not exist
+</dd>
+</dl>
+<p>it will throw an exception.</p>
+<dl>
+<dt><code>set&lt;string&gt; list(string key)</code></dt>
+<dd>This method will return a set of all sub-keys. The strings should contain
+</dd>
+</dl>
+<p>just the name of sub-key, and not the full path of the key. If the parent key does not exist it will throw an exception.</p>
+<p>Once complete you complete the RPC definition, use the <code>xdrc</code> compiler (located in <code>xdrpp/xdrc/xdrc</code>) to create the XDR definitions in (<code>include/server.hh</code>) as follows:</p>
+<pre><code>    $ make include/server.hh</code></pre>
+<p>The XDR compiler will also generate the server stubs (<code>server/serverimpl.{cc,h}</code>) that you will fill in next. N.B. If you later modify the protocol you will need to regenerate and merge these files by hand. To generate the server scaffolding, run:</p>
+<pre><code>    $ make scaffold</code></pre>
+<p>Since you will edit these files, you may want to add them to your git repository with:</p>
+<pre><code>    $ git add server/serverimpl.{cc,hh}</code></pre>
+<p>You should choose a unique TCP port number to run your service. To do this modify the define UNIQUE_RPC_PORT in include/rpcconfig.h. Choose a random number above 6100.</p>
+<h2 id="rpc-client-library">RPC Client Library</h2>
+<p>The client library provides a useful wrapper around the RPC interface. RPC only allows functions to pass in a single parameter and single return value, and thus you will be using structures to pass multiple parameters. The include/client.h header file documents the expected behavior of these functions and you can use shell/shell.cc as a reference.</p>
+<h2 id="rpc-server">RPC Server</h2>
+<p>With the <code>xdrc</code> compiler you should have generated serverimpl.cc already and you will need to fill in the implementation. Your implementation will use the facilities provided to you by XDRPP to parse the request, and serialize the results. Your code should do all the necessary handling to access the database, and return errors when necessary.</p>
+<p>As part of the implementation you will need to instantiate the database. We provided you with a simple persistent key-value store in serverdb.h. It provides you with hasKey, get, set, remove, and list, operations that you will use to implement the full system.</p>
+<p>ServerDB will not do any sanity checking for you. For example it is your responsibility to prevent the client from deleting a key that has children. Nor should a client be able to create a key with no parent. The server should sanity check that key names only contain letters, numbers, underscores, and slashes to divide the hierarchy.</p>
+<h2 id="rpc-shell">RPC Shell</h2>
+<p>We provided a simple shell for you to test your program. In one terminal run the server.</p>
+<pre><code>    $ server/server</code></pre>
+<p>In another you can run the shell by passing in the IP address of the server.</p>
+<pre><code>    $ shell/shell 127.0.0.1
+    &gt; create /test abc
+    CREATED
+    &gt; delete /test
+    DELETED
+    &gt; list /
+    &gt; list /test
+    KEY NOT FOUND
+    &gt;</code></pre>
+<p>You can run a test script using the shell as well</p>
+<pre><code>    $ shell/shell 127.0.0.1 tests/create.tst</code></pre>
+<p>Please do not modify the output of shell/shell.cc or the syntax of existing commands as we will be using the script interface for grading. Note that the interface is a bit brittle and does not support values with spaces.</p>
+<h2 id="testing-and-submitting">Testing and Submitting</h2>
+<p>Remember to run both the positive and negative test cases for each of the functions provided. Verify that the correct error code is returned for each negative test case.</p>
+<p>In the <code>tests</code> directory there are test scripts and sample outputs with both positive and negative tests. You can run them using the following command line.</p>
+<pre><code>    $ shell/shell 127.0.0.1 tests/create.tst
+    $ shell/shell 127.0.0.1 tests/remove.tst
+    $ shell/shell 127.0.0.1 tests/getset.tst
+    $ shell/shell 127.0.0.1 tests/list.tst</code></pre>
+<p>If you implemented everything correctly the output will be a binary match to the output files in the same directory.</p>
+<p>To submit the project please run:</p>
+<pre><code>    $ make clean
+    $ cd ..
+    $ tar zcvf lab1.tgz lab1</code></pre>
+</article>
+
+</body></html>
